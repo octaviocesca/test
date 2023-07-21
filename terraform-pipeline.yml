@@ -1,0 +1,48 @@
+trigger:
+- none
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Init - $(moduleName) $(resourceName)'
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    commandOptions: '-var "subscription_id=$(subscriptionId)" -var "name=$(resourceName)" -var "resource_group_name=$(resourceGroupName)" -var "location=$(locationName)"'
+    backendServiceArm: '$(azureServiceConnection)'
+    backendAzureRmResourceGroupName: 'ddi-dev-tstate-rg'
+    backendAzureRmStorageAccountName: 'stgdditerraformtest40736'
+    backendAzureRmContainerName: 'tfstate-octavio'
+    backendAzureRmKey: 'terraform.tfstate'
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Validate '
+  inputs:
+    provider: 'azurerm'
+    command: 'validate'
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Plan - $(moduleName) $(resourceName)'
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    commandOptions: '-out=plan.tfplan -target=module.$(moduleName) -var "subscription_id=$(subscriptionId)" -var "name=$(resourceName)" -var "resource_group_name=$(resourceGroupName)" -var "location=$(locationName)"'
+    environmentServiceNameAzureRM: '$(azureServiceConnection)'
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Apply - $(moduleName) $(resourceName)'
+  inputs:
+    provider: 'azurerm'
+    command: 'apply'
+    commandOptions: '-auto-approve plan.tfplan'
+    environmentServiceNameAzureRM: '$(azureServiceConnection)'
+
+- task: TerraformTaskV4@4
+  displayName: 'Terraform Output - $(moduleName) $(resourceName)'
+  inputs:
+    provider: 'azurerm'
+    command: 'output'
+    environmentServiceNameAzureRM: '$(azureServiceConnection)'
